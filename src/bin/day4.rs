@@ -11,12 +11,11 @@ fn part1(grid: &Grid<char>) -> usize {
             let position = Position::new(idx, idy);
             if grid.get(position) == Some(&'X') {
                 for direction in DIRECTIONS {
-                    let mut positions = std::iter::successors(Some(position), |&p| p + direction);
-                    if TARGET.iter().all(|target| {
-                        positions
-                            .next()
-                            .map_or(false, |p| grid.get(p) == Some(target))
-                    }) {
+                    let mut characters = grid.get_iter(position.line(direction));
+                    if TARGET
+                        .iter()
+                        .all(|target| Some(target) == characters.next())
+                    {
                         count += 1;
                     }
                 }

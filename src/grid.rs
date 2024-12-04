@@ -38,6 +38,13 @@ impl<T> Grid<T> {
         }
     }
 
+    pub fn get_iter<I: IntoIterator<Item = Position>>(
+        &self,
+        iter: I,
+    ) -> impl std::iter::Iterator<Item = &T> {
+        iter.into_iter().map_while(|p| self.get(p))
+    }
+
     pub fn get_mut(&mut self, position: Position) -> Option<&mut T> {
         if position.x < self.width {
             self.grid.get_mut(position.x + position.y * self.width)
@@ -164,6 +171,10 @@ impl Position {
         };
 
         dx + dy
+    }
+
+    pub fn line(self, direction: Direction) -> impl std::iter::Iterator<Item = Position> {
+        std::iter::successors(Some(self), move |&p| p + direction)
     }
 }
 
