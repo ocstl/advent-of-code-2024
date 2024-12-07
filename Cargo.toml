@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 counter = "0.6.0"
+radixal = "0.3.0"
 regex = "1.11.1"
