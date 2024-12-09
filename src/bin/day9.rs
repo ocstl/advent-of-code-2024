@@ -45,29 +45,22 @@ impl DiskMap {
             match self.blocks[idx] {
                 Block::Empty(_) => (),
                 Block::File(f_size, _) => {
-                    if let Some(empty) = self.blocks.iter().position(
+                    if let Some(empty) = self.blocks[0..idx].iter().position(
                         |potential| matches!(potential, &Block::Empty(e_size) if e_size >= f_size),
                     ) {
-                        if empty < idx {
-                            let file = self.blocks[idx];
-                            self.blocks[idx] = Block::Empty(f_size);
-                            match self.blocks[empty] {
-                                Block::Empty(e_size) => {
-                                    self.blocks[empty] = file;
-                                    if e_size > f_size {
-                                        match self.blocks.get(empty + 1) {
-                                            Some(Block::Empty(size)) => {
-                                                self.blocks[empty + 1] =
-                                                    Block::Empty(size + e_size - f_size)
-                                            }
-                                            _ => self
-                                                .blocks
-                                                .insert(empty + 1, Block::Empty(e_size - f_size)),
-                                        }
-                                    }
+                        let file = self.blocks[idx];
+                        // We should check if there are empties to the left and right, but it's
+                        // not necessary in this case.
+                        self.blocks[idx] = Block::Empty(f_size);
+
+                        match self.blocks[empty] {
+                            Block::Empty(e_size) => {
+                                self.blocks[empty] = file;
+                                if e_size > f_size {
+                                    self.blocks.insert(empty + 1, Block::Empty(e_size - f_size));
                                 }
-                                _ => unreachable!("This is the right index."),
                             }
+                            _ => unreachable!("This is the right index."),
                         }
                     }
                 }
