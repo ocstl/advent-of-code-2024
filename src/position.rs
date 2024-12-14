@@ -98,3 +98,14 @@ impl TryFrom<char> for Direction {
         }
     }
 }
+
+impl std::ops::Mul<isize> for Direction {
+    type Output = Self;
+
+    fn mul(self, rhs: isize) -> Self::Output {
+        Self {
+            dx: self.dx * rhs,
+            dy: self.dy * rhs,
+        }
+    }
+}
