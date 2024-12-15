@@ -1,4 +1,5 @@
 use advent_of_code_2024::grid::{Direction, Grid, Position};
+use std::collections::VecDeque;
 use std::fmt::Debug;
 
 const INPUT: &str = "./input/day15.txt";
@@ -129,11 +130,15 @@ impl Warehouse for Grid<LargeTile> {
                 None => false,
             }
         } else {
+            // Use a VecDeque to make sure we visit the tiles in order (up or down), which is
+            // important when it comes to emptying `to_push` afterward. Otherwise, we end up
+            // moving boxes that still can't be moved.
             let mut to_push = Vec::new();
-            let mut to_visit = vec![position];
+            let mut to_visit = VecDeque::new();
+            to_visit.push_back(position);
 
             // Check whether we can push, and record those we need to push.
-            while let Some(position) = to_visit.pop() {
+            while let Some(position) = to_visit.pop_front() {
                 match self.get(position) {
                     Some(LargeTile::Wall) => return false,
                     Some(LargeTile::Empty) => (),
@@ -142,12 +147,12 @@ impl Warehouse for Grid<LargeTile> {
                         // the same tile twice (once full, once empty). Everything breaks.
                         if !to_push.contains(&position) {
                             to_push.push(position);
-                            to_visit.push((position + direction).unwrap());
+                            to_visit.push_back((position + direction).unwrap());
                         }
                         let right = (position + Direction::Right).unwrap();
                         if !to_push.contains(&right) {
                             to_push.push(right);
-                            to_visit.push((right + direction).unwrap());
+                            to_visit.push_back((right + direction).unwrap());
                         }
                     }
                     Some(LargeTile::RightBox) => {
@@ -155,12 +160,12 @@ impl Warehouse for Grid<LargeTile> {
                         // the same tile twice (once full, once empty). Everything breaks.
                         if !to_push.contains(&position) {
                             to_push.push(position);
-                            to_visit.push((position + direction).unwrap());
+                            to_visit.push_back((position + direction).unwrap());
                         }
                         let left = (position + Direction::Left).unwrap();
                         if !to_push.contains(&left) {
                             to_push.push(left);
-                            to_visit.push((left + direction).unwrap());
+                            to_visit.push_back((left + direction).unwrap());
                         }
                     }
                     None => unreachable!("We should hit a wall first."),
