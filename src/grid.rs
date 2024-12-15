@@ -116,6 +116,13 @@ impl<T> Grid<T> {
     pub fn columns(&self) -> impl Iterator<Item = impl Iterator<Item = &T>> {
         (0..self.width).map(|idx| self.column(idx))
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (Position, &T)> {
+        self.rows().enumerate().flat_map(|(idy, row)| {
+            row.enumerate()
+                .map(move |(idx, value)| (Position::new(idx, idy), value))
+        })
+    }
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
