@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::fmt::Display;
 use std::iter::{Skip, StepBy, Take};
 use std::slice::{Iter, IterMut};
 
@@ -202,6 +203,12 @@ impl std::ops::Add<Direction> for Position {
             Direction::UpRight => self.y.checked_sub(1).map(|y| Position::new(self.x + 1, y)),
             Direction::DownRight => Some(Position::new(self.x + 1, self.y + 1)),
         }
+    }
+}
+
+impl Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
     }
 }
 
