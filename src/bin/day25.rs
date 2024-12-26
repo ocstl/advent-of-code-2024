@@ -6,9 +6,7 @@ type Lock = [usize; 5];
 type Key = [usize; 5];
 
 fn fit(lock: Lock, key: Key) -> bool {
-    lock.into_iter()
-        .zip(key)
-        .all(|(l, k)| l + k < HEIGHT)
+    lock.into_iter().zip(key).all(|(l, k)| l + k < HEIGHT)
 }
 
 fn parse_input(input: &str) -> (Vec<Lock>, Vec<Key>) {

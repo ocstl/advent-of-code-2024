@@ -1,4 +1,5 @@
-use advent_of_code_2024::grid::{Direction, Position};
+use advent_of_code_2024::grid::Position;
+use counter::Counter;
 use std::cmp::Ordering;
 use std::fmt::Debug;
 
@@ -127,27 +128,6 @@ impl From<NumericButton> for Position {
     }
 }
 
-impl TryFrom<Position> for NumericButton {
-    type Error = ();
-
-    fn try_from(value: Position) -> Result<Self, Self::Error> {
-        match (value.x(), value.y()) {
-            (0, 0) => Ok(NumericButton::Button7),
-            (1, 0) => Ok(NumericButton::Button8),
-            (2, 0) => Ok(NumericButton::Button9),
-            (0, 1) => Ok(NumericButton::Button4),
-            (1, 1) => Ok(NumericButton::Button5),
-            (2, 1) => Ok(NumericButton::Button6),
-            (0, 2) => Ok(NumericButton::Button1),
-            (1, 2) => Ok(NumericButton::Button2),
-            (2, 2) => Ok(NumericButton::Button3),
-            (1, 3) => Ok(NumericButton::Button0),
-            (2, 3) => Ok(NumericButton::Activate),
-            _ => Err(()),
-        }
-    }
-}
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum DirectionalButton {
     Left,
@@ -212,53 +192,18 @@ impl DirectionalButton {
     }
 }
 
-impl TryFrom<DirectionalButton> for Direction {
-    type Error = ();
-
-    fn try_from(value: DirectionalButton) -> Result<Self, Self::Error> {
-        match value {
-            DirectionalButton::Activate => Err(()),
-            DirectionalButton::Up => Ok(Direction::Up),
-            DirectionalButton::Down => Ok(Direction::Down),
-            DirectionalButton::Left => Ok(Direction::Left),
-            DirectionalButton::Right => Ok(Direction::Right),
-        }
-    }
-}
-
-impl From<DirectionalButton> for Position {
-    fn from(value: DirectionalButton) -> Position {
-        match value {
-            DirectionalButton::Activate => Position::new(2, 0),
-            DirectionalButton::Up => Position::new(1, 0),
-            DirectionalButton::Down => Position::new(1, 1),
-            DirectionalButton::Left => Position::new(0, 1),
-            DirectionalButton::Right => Position::new(2, 1),
-        }
-    }
-}
-
-fn intermediary_robot<I: IntoIterator<Item = DirectionalButton>>(
-    directions: I,
-) -> Vec<DirectionalButton> {
-    let mut sequence = Vec::new();
-    let mut current = DirectionalButton::default();
-    for direction in directions {
-        sequence.extend(current.to(direction));
-        sequence.push(DirectionalButton::Activate);
-        current = direction;
-    }
-
-    sequence
-}
-
 trait Code {
     fn shortest_sequence(&self, nbr_intermediaries: usize) -> usize;
     fn complexity(&self, nbr_intermediaries: usize) -> usize;
 }
 
-impl<T: AsRef<str>> Code for T {
+impl<T: AsRef<str> + Debug> Code for T {
     fn shortest_sequence(&self, nbr_intermediaries: usize) -> usize {
+        // The first robot on a directional keypad can press the same key repeatedly. But, the
+        // robot operating its keypad will always return (thus start) on the `Activate` button.
+        // Thus, the actual order stops mattering at the second robot, and we can keep a running
+        // tally of the transitions between keys (also keeping track of having to go back to the
+        // `Activate` button to actually press it).
         let s = self
             .as_ref()
             .chars()
@@ -266,22 +211,35 @@ impl<T: AsRef<str>> Code for T {
             .collect::<Result<Vec<_>, _>>()
             .expect("invalid sequence");
         let mut numeric_button = NumericButton::default();
-        let mut sequence = Vec::new();
+        let mut sequence: Counter<(DirectionalButton, DirectionalButton), usize> = Counter::new();
 
         for digit in s {
-            let mut subsequence = numeric_button
-                .to(digit)
-                .into_iter()
-                .chain(std::iter::once(DirectionalButton::Activate))
-                .collect();
-            for _ in 0..nbr_intermediaries {
-                subsequence = intermediary_robot(subsequence);
+            let mut start = DirectionalButton::default();
+            for d in numeric_button.to(digit).into_iter() {
+                sequence[&(start, d)] += 1;
+                start = d;
             }
-            sequence.append(&mut subsequence);
+            // Don't forget to press the activate button to actually press it.
+            sequence[&(start, DirectionalButton::Activate)] += 1;
             numeric_button = digit;
         }
 
-        sequence.len()
+        for _ in 0..nbr_intermediaries {
+            let mut new_sequence: Counter<(DirectionalButton, DirectionalButton), usize> =
+                Counter::new();
+            for ((start, end), c) in sequence {
+                let mut current = DirectionalButton::default();
+                for d in start.to(end) {
+                    new_sequence[&(current, d)] += c;
+                    current = d;
+                }
+                // Don't forget to press the activate button to actually press it.
+                new_sequence[&(current, DirectionalButton::Activate)] += c;
+            }
+            sequence = new_sequence;
+        }
+
+        sequence.values().sum()
     }
 
     fn complexity(&self, nbr_intermediaries: usize) -> usize {
@@ -299,6 +257,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let part1 = input.lines().map(|code| code.complexity(2)).sum::<usize>();
     println!("The first answer is: {}", part1);
+    let part2 = input.lines().map(|code| code.complexity(25)).sum::<usize>();
+    println!("The second answer is: {}", part2);
 
     Ok(())
 }
